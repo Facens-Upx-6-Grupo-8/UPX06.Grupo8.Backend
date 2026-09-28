@@ -6,7 +6,6 @@ namespace Application.Persistance.Configurations;
 
 internal class SampleSetPointSettingsConfiguration : IEntityTypeConfiguration<SampleSetPointSettings>
 {
-    const string PRIMARY_KEY_PROPERTY_NAME = "Id";
     public void Configure(EntityTypeBuilder<SampleSetPointSettings> builder)
     {
         builder.ComplexProperty(x => x.PHSettings);
@@ -14,6 +13,6 @@ internal class SampleSetPointSettingsConfiguration : IEntityTypeConfiguration<Sa
         builder.ComplexProperty(x => x.TemperatureSettings);
         builder.ComplexProperty(x => x.TDSSettings);
 
-        builder.HasKey(PRIMARY_KEY_PROPERTY_NAME);
+        builder.HasKey(SampleSetPointSettings.PRIMARY_KEY_PROPERTY_NAME);
     }
 }

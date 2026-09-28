@@ -7,6 +7,7 @@ public record SampleSetPointSettings(
     SampleMetricSetPointSettings TDSSettings
 )
 {
+    public const string PRIMARY_KEY_PROPERTY_NAME = "Id";
     private int Id { get; init; } = 0;
 }
 

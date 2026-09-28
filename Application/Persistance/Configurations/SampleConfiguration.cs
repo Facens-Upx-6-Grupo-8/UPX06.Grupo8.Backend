@@ -7,6 +7,7 @@ namespace Application.Persistance.Configurations;
 internal class SampleConfiguration : IEntityTypeConfiguration<Sample>
 {
     const string PRIMARY_KEY_PROPERTY_NAME = "Id";
+
     public void Configure(EntityTypeBuilder<Sample> builder)
     {
         builder.Property(s => s.Timestamp);
