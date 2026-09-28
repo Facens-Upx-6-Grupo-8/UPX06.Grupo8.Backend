@@ -3,7 +3,10 @@
 namespace Domain.Models;
 
 public record Sample(
-    DateTime CreatedAt,
-    SampleSource Source,
-    double Value
+    DateTime Timestamp,
+    SampleSourcingPoint SourcingPoint,
+    double PH,
+    double Turbidity,
+    double Temperature,
+    int TDS
 ) { }
