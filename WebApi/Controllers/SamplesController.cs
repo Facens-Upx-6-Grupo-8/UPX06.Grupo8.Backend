@@ -11,7 +11,7 @@ namespace WebApi.Controllers
     public class SamplesController(IMediator mediator) : ControllerBase
     {
         [HttpGet(Name = "GetSamples")]
-        public async Task<ActionResult<IEnumerable<Sample>>> Get() => Ok(await mediator.Send(new SamplesQuery()));
+        public async Task<ActionResult<IEnumerable<SamplesQueryResult>>> Get([FromQuery] SamplesQuery query) => Ok(await mediator.Send(query));
 
         [HttpPost(Name = "RegisterSample")]
         public async Task<IActionResult> RegisterSample(Sample sample)
