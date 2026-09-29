@@ -10,8 +10,11 @@ namespace WebApi.Controllers;
 [Route("[controller]")]
 public class SamplesController(IMediator mediator) : ControllerBase
 {
-    [HttpGet(Name = "GetSamples")]
-    public async Task<ActionResult<IEnumerable<SamplesQueryResult>>> Get([FromQuery] SamplesQuery query) => Ok(await mediator.Send(query));
+    [HttpGet(Name = "QuerySamples")]
+    public async Task<ActionResult<IEnumerable<SamplesPagedQueryResult>>> Get([FromQuery] SamplesPagedQuery query) => Ok(await mediator.Send(query));
+
+    [HttpGet("Recent", Name = "QueryRecentSamples")]
+    public async Task<ActionResult<IEnumerable<Sample>>> GetRecent([FromQuery] SamplesByRecentQuery query) => Ok(await mediator.Send(query));
 
     [HttpPost(Name = "RegisterSample")]
     public async Task<IActionResult> RegisterSample(Sample sample)

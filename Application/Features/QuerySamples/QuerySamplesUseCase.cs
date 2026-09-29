@@ -3,13 +3,16 @@ using Application.Persistance;
 using Domain.Enums;
 using Domain.Models;
 using MediatR;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.QuerySamples;
 
-internal class QuerySamplesUseCase(AppDbContext appDbContext) : IRequestHandler<SamplesQuery, SamplesQueryResult>
+internal class QuerySamplesUseCase(AppDbContext appDbContext)
+    : IRequestHandler<SamplesPagedQuery, SamplesPagedQueryResult>
+    , IRequestHandler<SamplesByRecentQuery, IReadOnlyList<Sample>>
 {
-    public async Task<SamplesQueryResult> Handle(SamplesQuery request, CancellationToken cancellationToken)
+    public async Task<SamplesPagedQueryResult> Handle(SamplesPagedQuery request, CancellationToken cancellationToken)
     {
         var query = appDbContext.Samples.AsQueryable();
 
@@ -34,7 +37,7 @@ internal class QuerySamplesUseCase(AppDbContext appDbContext) : IRequestHandler<
                      .Skip((page - 1) * request.PageSize)
                      .Take(request.PageSize);
 
-        return new SamplesQueryResult(
+        return new SamplesPagedQueryResult(
             Items: await query.ToListAsync(cancellationToken),
             Page: page,
             PageSize: request.PageSize,
@@ -42,7 +45,27 @@ internal class QuerySamplesUseCase(AppDbContext appDbContext) : IRequestHandler<
             TotalCount: totalCount
         );
     }
+
+    public async Task<IReadOnlyList<Sample>> Handle(SamplesByRecentQuery request, CancellationToken cancellationToken)
+    {
+        var query = appDbContext.Samples.AsQueryable();
+
+        var fromTimestamp = DateTime.UtcNow - request.FromLast;
+
+        query = query.Where(s => s.Timestamp >= fromTimestamp);
+
+        if (request.SampleSourcingPoint.HasValue)
+        {
+            query = query.Where(s => s.SourcingPoint == request.SampleSourcingPoint.Value);
+        }
+
+        return await query.ToListAsync(cancellationToken);
+    }
 }
 
-public record SamplesQuery(DateOnly? From = null, DateOnly? To = null, SampleSourcingPoint? SampleSourcingPoint = null, int Page = 1, int PageSize = 10) : PagedQuery(Page, PageSize), IRequest<SamplesQueryResult>;
-public record SamplesQueryResult(IReadOnlyList<Sample> Items, int Page, int PageSize, int LastPage, int TotalCount) : PagedResult<Sample>(Items, Page, PageSize, LastPage, TotalCount);
+public record SamplesPagedQuery(DateOnly? From = null, DateOnly? To = null, SampleSourcingPoint? SampleSourcingPoint = null, int Page = 1, int PageSize = 10) : PagedQuery(Page, PageSize), IRequest<SamplesPagedQueryResult>;
+public record SamplesPagedQueryResult(IReadOnlyList<Sample> Items, int Page, int PageSize, int LastPage, int TotalCount) : PagedResult<Sample>(Items, Page, PageSize, LastPage, TotalCount);
+
+// I don't like having BindRequired here...
+// TODO: Find a better way to enforce this validation
+public record SamplesByRecentQuery([BindRequired] TimeSpan FromLast, SampleSourcingPoint? SampleSourcingPoint = null) : IRequest<IReadOnlyList<Sample>>;
