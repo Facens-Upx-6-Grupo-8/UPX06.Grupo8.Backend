@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Persistance;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+internal class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<Sample> Samples => Set<Sample>();
     public SampleSetPointSettings SampleSetPointSettings => Set<SampleSetPointSettings>().Single();

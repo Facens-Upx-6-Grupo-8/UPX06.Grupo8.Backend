@@ -13,9 +13,4 @@ public record SampleSetPointSettings(
     public SampleSetPointSettings() : this(default!, default!, default!, default!) { }
 }
 
-public record SampleMetricSetPointSettings(
-    double LowerBound,
-    double UpperBound,
-    bool IsEnabled
-)
-{ }
+public record SampleMetricSetPointSettings(double LowerBound, double UpperBound, bool IsEnabled);

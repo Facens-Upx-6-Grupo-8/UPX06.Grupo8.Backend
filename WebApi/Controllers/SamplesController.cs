@@ -1,22 +1,22 @@
-using Application.Persistance;
+using Application.Features.QuerySamples;
+using Application.Features.RegisterSample;
 using Domain.Models;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class SamplesController(AppDbContext appDbContext) : ControllerBase
+    public class SamplesController(IMediator mediator) : ControllerBase
     {
         [HttpGet(Name = "GetSamples")]
-        public ActionResult<IEnumerable<Sample>> Get() => Ok(appDbContext.Samples);
+        public async Task<ActionResult<IEnumerable<Sample>>> Get() => Ok(await mediator.Send(new SamplesQuery()));
 
         [HttpPost(Name = "RegisterSample")]
-        public IActionResult RegisterSample(Sample sample)
+        public async Task<IActionResult> RegisterSample(Sample sample)
         {
-            appDbContext.Samples.Add(sample);
-            appDbContext.SaveChanges();
-
+            await mediator.Send(new RegisterSampleCommand(sample));
             return Created();
         }
     }
