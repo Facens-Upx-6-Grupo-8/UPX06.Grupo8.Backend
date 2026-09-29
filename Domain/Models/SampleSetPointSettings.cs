@@ -8,7 +8,9 @@ public record SampleSetPointSettings(
 )
 {
     public const string PRIMARY_KEY_PROPERTY_NAME = "Id";
-    private int Id { get; init; } = 0;
+    private int Id { get; init; } = 1;
+
+    public SampleSetPointSettings() : this(default!, default!, default!, default!) { }
 }
 
 public record SampleMetricSetPointSettings(

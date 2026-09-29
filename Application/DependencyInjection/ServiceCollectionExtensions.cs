@@ -17,7 +17,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddDbContext<AppDbContext>(options =>
         {
-            options.UseInMemoryDatabase("InMemoryDb");
+            options.UseSqlite("Data Source=.db");
             options.UseSeeding(SeedSampleSetPointSettings);
         });
 
