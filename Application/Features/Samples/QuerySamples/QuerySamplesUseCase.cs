@@ -6,7 +6,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.Features.QuerySamples;
+namespace Application.Features.Samples.QuerySamples;
 
 internal class QuerySamplesUseCase(AppDbContext appDbContext)
     : IRequestHandler<SamplesPagedQuery, SamplesPagedQueryResult>

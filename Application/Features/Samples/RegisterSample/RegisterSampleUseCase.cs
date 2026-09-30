@@ -2,7 +2,7 @@
 using Domain.Models;
 using MediatR;
 
-namespace Application.Features.RegisterSample;
+namespace Application.Features.Samples.RegisterSample;
 
 internal class RegisterSampleUseCase(AppDbContext appDbContext) : IRequestHandler<RegisterSampleCommand>
 {

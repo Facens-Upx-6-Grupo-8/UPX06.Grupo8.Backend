@@ -1,5 +1,5 @@
-using Application.Features.QuerySamples;
-using Application.Features.RegisterSample;
+using Application.Features.Samples.QuerySamples;
+using Application.Features.Samples.RegisterSample;
 using Domain.Models;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;

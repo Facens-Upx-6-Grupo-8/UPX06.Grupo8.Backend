@@ -27,7 +27,7 @@ public static class ServiceCollectionExtensions
 
     private static void SeedSampleSetPointSettings(DbContext context, bool _)
     {
-        var sampleSetPointSettingsDbSet = context.Set<SampleSetPointSettings>();
+        var sampleSetPointSettingsDbSet = context.Set<SampleEvaluator>();
         
         if (sampleSetPointSettingsDbSet.Any())
         {

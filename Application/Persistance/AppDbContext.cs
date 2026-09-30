@@ -6,7 +6,7 @@ namespace Application.Persistance;
 internal class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<Sample> Samples => Set<Sample>();
-    public SampleSetPointSettings SampleSetPointSettings => Set<SampleSetPointSettings>().Single();
+    public SampleEvaluator SampleEvaluator => Set<SampleEvaluator>().Single();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
