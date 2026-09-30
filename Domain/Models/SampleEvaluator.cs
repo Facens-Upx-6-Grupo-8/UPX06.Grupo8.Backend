@@ -16,6 +16,7 @@ public record SampleEvaluator(
 
     public EvaluatedSample Evaluate(Sample sample) => new(
         SampleSourcingPoint: sample.SourcingPoint,
+        Timestamp: sample.Timestamp,
         PHEvaluationResult: PHSettings.Evaluate(sample.PH),
         TurbidityEvaluationResult: TurbiditySettings.Evaluate(sample.Turbidity),
         TemperatureEvaluationResult: TemperatureSettings.Evaluate(sample.Temperature),
@@ -24,6 +25,7 @@ public record SampleEvaluator(
 }
 public record EvaluatedSample(
     SampleSourcingPoint SampleSourcingPoint,
+    DateTime Timestamp,
     EvaluatedSampleMetric PHEvaluationResult,
     EvaluatedSampleMetric TurbidityEvaluationResult,
     EvaluatedSampleMetric TemperatureEvaluationResult,
