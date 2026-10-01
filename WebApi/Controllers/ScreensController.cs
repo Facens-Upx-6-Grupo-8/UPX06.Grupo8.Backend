@@ -52,6 +52,18 @@ public class ScreensController(IMediator mediator) : ControllerBase
 
         return Ok(new ComparisonScreenData(evaluatedSampleBeforeFiltration, evaluatedSampleAfterFiltration));
     }
+
+    [HttpGet("History", Name = "GetHistoryScreenData")]
+    public async Task<ActionResult> GetHistoryScreenData()
+    {
+        throw new NotImplementedException();
+    }
+
+    [HttpGet("Alerts", Name = "GetAlertsAndConfigScreenData")]
+    public async Task<ActionResult> GetAlertsAndConfigScreenData()
+    {
+        throw new NotImplementedException();
+    }
 }
 
 public record DashboardScreenData(EvaluatedSample? LatestSampleEvaluation, IReadOnlyList<Sample> Samples);
