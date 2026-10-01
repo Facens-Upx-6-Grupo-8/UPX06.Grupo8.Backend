@@ -62,9 +62,67 @@ public class ScreensController(IMediator mediator) : ControllerBase
     [HttpGet("Alerts", Name = "GetAlertsAndConfigScreenData")]
     public async Task<ActionResult> GetAlertsAndConfigScreenData()
     {
-        throw new NotImplementedException();
+        var sampleEvaluator = await mediator.Send(new SampleEvaluatorQuery());
+
+        var samplesAfterFiltration = await mediator.Send(new SamplesPagedQuery(PageSize: 1, SampleSourcingPoint: SampleSourcingPoint.AfterFiltration));
+        var sampleAfterFiltration = samplesAfterFiltration.Items.SingleOrDefault();
+        var evaluatedSampleAfterFiltration = sampleAfterFiltration is not null
+            ? await mediator.Send(new EvaluateSampleCommand(sampleAfterFiltration))
+            : null;
+
+        var alerts = new List<Alert>();
+
+        switch (evaluatedSampleAfterFiltration?.PHEvaluationResult)
+        {
+            case OverUpperBoundEvaluatedSampleMetric:
+                alerts.Add(new Alert($"PH acima do limite definido ({evaluatedSampleAfterFiltration.PHEvaluationResult.Value})", evaluatedSampleAfterFiltration.Timestamp));
+                break;
+
+            case UnderLowerBoundEvaluatedSampleMetric:
+                alerts.Add(new Alert($"PH abaixo do limite definido ({evaluatedSampleAfterFiltration.PHEvaluationResult.Value})", evaluatedSampleAfterFiltration.Timestamp));
+                break;
+        }
+
+        switch (evaluatedSampleAfterFiltration?.TurbidityEvaluationResult)
+        {
+            case OverUpperBoundEvaluatedSampleMetric:
+                alerts.Add(new Alert($"Turbidez acima do limite definido ({evaluatedSampleAfterFiltration.TurbidityEvaluationResult.Value})", evaluatedSampleAfterFiltration.Timestamp));
+                break;
+
+            case UnderLowerBoundEvaluatedSampleMetric:
+                alerts.Add(new Alert($"Turbidez abaixo do limite definido ({evaluatedSampleAfterFiltration.TurbidityEvaluationResult.Value})", evaluatedSampleAfterFiltration.Timestamp));
+                break;
+        }
+
+        switch (evaluatedSampleAfterFiltration?.TemperatureEvaluationResult)
+        {
+            case OverUpperBoundEvaluatedSampleMetric:
+                alerts.Add(new Alert($"Temperatura acima do limite definido ({evaluatedSampleAfterFiltration.TemperatureEvaluationResult.Value})", evaluatedSampleAfterFiltration.Timestamp));
+                break;
+
+            case UnderLowerBoundEvaluatedSampleMetric:
+                alerts.Add(new Alert($"Temperatura abaixo do limite definido ({evaluatedSampleAfterFiltration.TemperatureEvaluationResult.Value})", evaluatedSampleAfterFiltration.Timestamp));
+                break;
+        }
+
+        switch (evaluatedSampleAfterFiltration?.TDSEvaluationResult)
+        {
+            case OverUpperBoundEvaluatedSampleMetric:
+                alerts.Add(new Alert($"Condutividade acima do limite definido ({evaluatedSampleAfterFiltration.TDSEvaluationResult.Value})", evaluatedSampleAfterFiltration.Timestamp));
+                break;
+
+            case UnderLowerBoundEvaluatedSampleMetric:
+                alerts.Add(new Alert($"Condutividade abaixo do limite definido ({evaluatedSampleAfterFiltration.TDSEvaluationResult.Value})", evaluatedSampleAfterFiltration.Timestamp));
+                break;
+        }
+
+        return Ok(new AlertsAndConfigurationScreenData(sampleEvaluator, alerts));
     }
 }
 
 public record DashboardScreenData(EvaluatedSample? LatestSampleEvaluation, IReadOnlyList<Sample> Samples);
+
 public record ComparisonScreenData(EvaluatedSample? SampleBeforeFiltration, EvaluatedSample? SampleAfterFiltration);
+
+public record AlertsAndConfigurationScreenData(SampleEvaluator CurrentSettings, List<Alert> Alerts);
+public record Alert(string Message, DateTime Timestamp);

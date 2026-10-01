@@ -42,10 +42,35 @@ public record EvaluatedSample(
 
 public record SampleMetricEvaluator(double LowerBound, double UpperBound, bool IsEnabled)
 {
-    public EvaluatedSampleMetric Evaluate(double value) => new(
-        IsSuccessful: !IsEnabled || (value >= LowerBound && value <= UpperBound),
-        Value: value,
-        Evaluator: this
-    );
+    public EvaluatedSampleMetric Evaluate(double value)
+    {
+        if (IsEnabled)
+        {
+            if (value < LowerBound)
+            {
+                return new UnderLowerBoundEvaluatedSampleMetric(
+                    Value: value,
+                    Evaluator: this
+                );
+            }
+
+            if (value > UpperBound)
+            {
+                return new OverUpperBoundEvaluatedSampleMetric(
+                    Value: value,
+                    Evaluator: this
+                );
+            }
+        }
+
+        return new SuccessfullyEvaluatedSampleMetric(
+            Value: value,
+            Evaluator: this
+        );
+    }
 };
-public record EvaluatedSampleMetric(bool IsSuccessful, double Value, SampleMetricEvaluator Evaluator);
+public abstract record EvaluatedSampleMetric(bool IsSuccessful, double Value, SampleMetricEvaluator Evaluator);
+public record SuccessfullyEvaluatedSampleMetric(double Value, SampleMetricEvaluator Evaluator) : EvaluatedSampleMetric(true, Value, Evaluator);
+public abstract record UnsuccessfullyEvaluatedSampleMetric(double Value, SampleMetricEvaluator Evaluator) : EvaluatedSampleMetric(false, Value, Evaluator);
+public record OverUpperBoundEvaluatedSampleMetric(double Value, SampleMetricEvaluator Evaluator) : UnsuccessfullyEvaluatedSampleMetric(Value, Evaluator);
+public record UnderLowerBoundEvaluatedSampleMetric(double Value, SampleMetricEvaluator Evaluator) : UnsuccessfullyEvaluatedSampleMetric(Value, Evaluator);
