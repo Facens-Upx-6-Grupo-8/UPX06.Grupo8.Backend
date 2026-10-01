@@ -53,14 +53,21 @@ public class ScreensController(IMediator mediator) : ControllerBase
         return Ok(new ComparisonScreenData(evaluatedSampleBeforeFiltration, evaluatedSampleAfterFiltration));
     }
 
+    // TODO: Refatorar filtragem para utilizar DateTime e não DateOnly; Remover SamplesByRecent.
     [HttpGet("History", Name = "GetHistoryScreenData")]
-    public async Task<ActionResult> GetHistoryScreenData()
+    public async Task<ActionResult<HistoryScreenData>> GetHistoryScreenData([FromQuery] TimeSpan? fromLast)
     {
-        throw new NotImplementedException();
+        fromLast ??= TimeSpan.FromHours(24);
+
+        var samplesHistory = await mediator.Send(new SamplesByRecentQuery((TimeSpan)fromLast, SampleSourcingPoint: SampleSourcingPoint.AfterFiltration));
+
+        var samplesHistoryPaged = await mediator.Send(new SamplesPagedQuery(PageSize: 5, SampleSourcingPoint: SampleSourcingPoint.AfterFiltration));
+        
+        return Ok(new HistoryScreenData(samplesHistory, samplesHistoryPaged));
     }
 
     [HttpGet("Alerts", Name = "GetAlertsAndConfigScreenData")]
-    public async Task<ActionResult> GetAlertsAndConfigScreenData()
+    public async Task<ActionResult<AlertsAndConfigurationScreenData>> GetAlertsAndConfigScreenData()
     {
         var sampleEvaluator = await mediator.Send(new SampleEvaluatorQuery());
 
@@ -120,9 +127,11 @@ public class ScreensController(IMediator mediator) : ControllerBase
     }
 }
 
-public record DashboardScreenData(EvaluatedSample? LatestSampleEvaluation, IReadOnlyList<Sample> Samples);
+public record DashboardScreenData(EvaluatedSample? LatestSampleEvaluation, IEnumerable<Sample> Samples);
 
 public record ComparisonScreenData(EvaluatedSample? SampleBeforeFiltration, EvaluatedSample? SampleAfterFiltration);
 
-public record AlertsAndConfigurationScreenData(SampleEvaluator CurrentSettings, List<Alert> Alerts);
+public record AlertsAndConfigurationScreenData(SampleEvaluator CurrentSettings, IEnumerable<Alert> Alerts);
 public record Alert(string Message, DateTime Timestamp);
+
+public record HistoryScreenData(IEnumerable<Sample> SamplesHistory, SamplesPagedQueryResult SamplesHistoryPaged);
