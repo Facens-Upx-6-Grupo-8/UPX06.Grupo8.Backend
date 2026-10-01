@@ -12,12 +12,17 @@ namespace WebApi.Controllers;
 [Route("[controller]")]
 public class ScreensController(IMediator mediator) : ControllerBase
 {
-    private readonly SamplesByRecentQuery _samplesAfterFiltrationFromLast24HoursQuery = new(TimeSpan.FromHours(24), SampleSourcingPoint.AfterFiltration);
-
     [HttpGet("Dashboard", Name = "GetDashboardScreenData")]
     public async Task<ActionResult<DashboardScreenData>> GetDashboardScreenData()
     {
-        var recentSamples = await mediator.Send(_samplesAfterFiltrationFromLast24HoursQuery);
+        var samplesQuery = new SamplesPagedQuery(
+            From: DateTime.UtcNow - TimeSpan.FromHours(24),
+            SampleSourcingPoint: SampleSourcingPoint.AfterFiltration,
+            PageSize: int.MaxValue
+        );
+
+        var recentSamplesPaged = await mediator.Send(samplesQuery);
+        var recentSamples = recentSamplesPaged.Items;
 
         if (recentSamples.Count == 0)
         {
@@ -53,17 +58,30 @@ public class ScreensController(IMediator mediator) : ControllerBase
         return Ok(new ComparisonScreenData(evaluatedSampleBeforeFiltration, evaluatedSampleAfterFiltration));
     }
 
-    // TODO: Refatorar filtragem para utilizar DateTime e não DateOnly; Remover SamplesByRecent.
     [HttpGet("History", Name = "GetHistoryScreenData")]
     public async Task<ActionResult<HistoryScreenData>> GetHistoryScreenData([FromQuery] TimeSpan? fromLast)
     {
-        fromLast ??= TimeSpan.FromHours(24);
+        var samplesQuery = new SamplesPagedQuery(
+            From: DateTime.UtcNow - TimeSpan.FromHours(24),
+            SampleSourcingPoint: SampleSourcingPoint.AfterFiltration,
+            PageSize: int.MaxValue
+        );
 
-        var samplesHistory = await mediator.Send(new SamplesByRecentQuery((TimeSpan)fromLast, SampleSourcingPoint: SampleSourcingPoint.AfterFiltration));
+        if (fromLast is not null)
+        {
+            samplesQuery = samplesQuery with { From = DateTime.UtcNow - fromLast };
+        }
 
-        var samplesHistoryPaged = await mediator.Send(new SamplesPagedQuery(PageSize: 5, SampleSourcingPoint: SampleSourcingPoint.AfterFiltration));
-        
-        return Ok(new HistoryScreenData(samplesHistory, samplesHistoryPaged));
+        var samplesHistory = await mediator.Send(samplesQuery);
+
+        var samplesHistoryPaged = await mediator.Send(
+            samplesQuery with
+            {
+                PageSize = 5
+            }
+        );
+
+        return Ok(new HistoryScreenData(samplesHistory.Items, samplesHistoryPaged));
     }
 
     [HttpGet("Alerts", Name = "GetAlertsAndConfigScreenData")]
