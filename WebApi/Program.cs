@@ -17,6 +17,8 @@ builder.Services.AddCors(options => options.AddPolicy("Frontend", policy =>
 builder.Services.AddOpenApi();
 builder.Services.AddApplication($"Data Source={Path.Combine(builder.Environment.ContentRootPath, ".db")}");
 
+builder.Services.AddHostedService<Worker.Worker>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
