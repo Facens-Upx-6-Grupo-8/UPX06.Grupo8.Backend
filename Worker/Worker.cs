@@ -39,7 +39,14 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
                     logger.LogError(ex, "Unexpected exception.");
                 }
 
-                await Task.Delay(GetRetryDelay(attempt++), stoppingToken);
+                var delay = GetRetryDelay(attempt++);
+            
+                logger.LogInformation(
+                    "Retrying in {Delay} seconds...",
+                    delay.TotalSeconds    
+                );
+
+                await Task.Delay(delay, stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -103,7 +110,14 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
                 return availableSerialPorts[0];
             }
             
-            await Task.Delay(GetRetryDelay(attempt++, factor: 1.2), stoppingToken);
+            var delay = GetRetryDelay(attempt++);
+            
+            logger.LogInformation(
+                "Retrying in {Delay} seconds...",
+                delay.TotalSeconds    
+            );
+
+            await Task.Delay(delay, stoppingToken);
         }
     }
 
@@ -172,7 +186,7 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
         );
     }
     
-    private static TimeSpan GetRetryDelay(int attempt, double factor = 2, double maxBackoff = 5)
+    private static TimeSpan GetRetryDelay(int attempt, double factor = 1.3, double maxBackoff = 5)
     {
         var exponent = Math.Min(attempt - 1, maxBackoff);
         return TimeSpan.FromSeconds(Math.Pow(factor, exponent));
