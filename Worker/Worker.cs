@@ -24,23 +24,11 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
                     using var serial = InitializeSerialPort(serialPortName);
                     serial.Open();
 
-                    while (!stoppingToken.IsCancellationRequested)
-                    {
-                        try
-                        {
-                            await HandleDataReceived(serial.ReadTo("\n"));
-                            attempt = 1;
-                        }
-                        catch (InvalidDataException)
-                        {
-                            logger.LogWarning("Received invalid data. Flushing...");
-                            serial.DiscardInBuffer();
-                        }
-                        catch (TimeoutException)
-                        {
-                            logger.LogWarning("Read operation timed out.");
-                        }
-                    }
+                    await PollSerial(
+                        serialConnection: serial,
+                        onDataLineReceived: HandleDataReceived,
+                        stoppingToken
+                    );
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -58,6 +46,64 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
                 logger.LogInformation("Worker stopped.");
                 return;
             }
+        }
+    }
+
+    private async Task PollSerial(SerialPort serialConnection, Func<string, Task> onDataLineReceived, CancellationToken stoppingToken)
+    {
+        var attempt = 1;
+        
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                var line = serialConnection.ReadLine();
+                
+                await onDataLineReceived(line);
+                
+                attempt = 1;
+            }
+            catch (InvalidDataLineException ex)
+            {
+                logger.LogWarning(
+                    "Invalid data received ({InvalidDataExceptionMessage}): {InvalidDataLine}",
+                    ex.Message,
+                    ex.Line
+                );
+                serialConnection.DiscardInBuffer();
+            }
+            catch (TimeoutException)
+            {
+                logger.LogWarning("Read operation timed out.");
+            }
+
+            var delay = GetRetryDelay(attempt++);
+            
+            logger.LogInformation(
+                "Retrying in {Delay} seconds...",
+                delay.TotalSeconds    
+            );
+
+            await Task.Delay(delay, stoppingToken);
+        }
+    }
+    
+    private async Task<string> ResolveAvailableSerialPort(CancellationToken stoppingToken)
+    {
+        var attempt = 1;
+        while (true)
+        {
+            logger.LogInformation("Resolving available serial port...");
+            stoppingToken.ThrowIfCancellationRequested();
+            
+            var availableSerialPorts = SerialPort.GetPortNames().ToList();
+
+            if (availableSerialPorts.Count > 0)
+            {
+                return availableSerialPorts[0];
+            }
+            
+            await Task.Delay(GetRetryDelay(attempt++, factor: 1.2), stoppingToken);
         }
     }
 
@@ -82,25 +128,6 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
         }
     }
 
-    private async Task<string> ResolveAvailableSerialPort(CancellationToken stoppingToken)
-    {
-        var attempt = 1;
-        while (true)
-        {
-            logger.LogInformation("Resolving available serial port...");
-            stoppingToken.ThrowIfCancellationRequested();
-            
-            var availableSerialPorts = SerialPort.GetPortNames().ToList();
-
-            if (availableSerialPorts.Count > 0)
-            {
-                return availableSerialPorts[0];
-            }
-            
-            await Task.Delay(GetRetryDelay(attempt++, factor: 1.2), stoppingToken);
-        }
-    }
-
     private async Task HandleDataReceived(string line)
     {
         if (string.IsNullOrWhiteSpace(line))
@@ -112,23 +139,23 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
 
         if (data.Length is not 4)
         {
-            throw new InvalidDataException("Invalid data shape");
+            throw new InvalidDataLineException("Invalid data shape", line);
         }
         if (!double.TryParse(data[0], CultureInfo.InvariantCulture, out var ph))
         {
-            throw new InvalidDataException("Invalid PH");
+            throw new InvalidDataLineException("Invalid PH", line);
         }
         if (!double.TryParse(data[1], CultureInfo.InvariantCulture, out var turbidity))
         {
-            throw new InvalidDataException("Invalid turbidity");
+            throw new InvalidDataLineException("Invalid turbidity", line);
         }
         if (!double.TryParse(data[2], CultureInfo.InvariantCulture, out var temperature))
         {
-            throw new InvalidDataException("Invalid temperature");
+            throw new InvalidDataLineException("Invalid temperature", line);
         }
         if (!int.TryParse(data[3], CultureInfo.InvariantCulture, out var tds))
         {
-            throw new InvalidDataException("Invalid tds");
+            throw new InvalidDataLineException("Invalid tds", line);
         }
 
         await mediator.Send(
@@ -151,5 +178,8 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
         return TimeSpan.FromSeconds(Math.Pow(factor, exponent));
     }
 
-    private class InvalidDataException(string message) : ApplicationException(message);
+    private class InvalidDataLineException(string message, string line) : ApplicationException(message)
+    {
+        public string Line { get; } = line;
+    }
 }
