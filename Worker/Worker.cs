@@ -4,12 +4,13 @@ using Application.Features.Samples.RegisterSample;
 using Domain.Enums;
 using Domain.Models;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Worker;
 
-public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundService
+public class Worker(ILogger<Worker> logger, IServiceScopeFactory serviceScopeFactory) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -127,7 +128,7 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
         try
         {
             serial = new SerialPort(serialPortName);
-            serial.BaudRate = 115200;
+            serial.BaudRate = 9600;
             serial.Parity = Parity.None;
             serial.StopBits = StopBits.One;
             serial.DataBits = 8;
@@ -149,21 +150,21 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
             return;
         }
         
-        var data = line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var data = line.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         if (data.Length is not 4)
         {
             throw new InvalidDataLineException("Invalid data shape", line);
         }
-        if (!double.TryParse(data[0], CultureInfo.InvariantCulture, out var ph))
+        if (!double.TryParse(data[0], CultureInfo.InvariantCulture, out var temperature))
         {
             throw new InvalidDataLineException("Invalid PH", line);
         }
-        if (!double.TryParse(data[1], CultureInfo.InvariantCulture, out var turbidity))
+        if (!double.TryParse(data[1], CultureInfo.InvariantCulture, out var ph))
         {
             throw new InvalidDataLineException("Invalid turbidity", line);
         }
-        if (!double.TryParse(data[2], CultureInfo.InvariantCulture, out var temperature))
+        if (!double.TryParse(data[2], CultureInfo.InvariantCulture, out var turbidity))
         {
             throw new InvalidDataLineException("Invalid temperature", line);
         }
@@ -172,6 +173,9 @@ public class Worker(ILogger<Worker> logger, IMediator mediator) : BackgroundServ
             throw new InvalidDataLineException("Invalid tds", line);
         }
 
+        using var scope = serviceScopeFactory.CreateAsyncScope();
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        
         await mediator.Send(
             new RegisterSampleCommand(
                 new Sample(
